@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Blog</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link rel="stylesheet" type="text/css" href="./resources/css/ext-all.css"/>
+    <!-- LIBS -->
+    <script type="text/javascript" src="./adapter/ext/ext-base.js"></script>
+    <!-- ENDLIBS -->
+    <script type="text/javascript" src="./ext-all.js"></script>
+    <script>
+        Ext.onReady(function () {
+            let tableData = [];
+
+            function reset() {
+                Ext.getCmp("bio").reset();
+                let str = Ext.getCmp("bio").getValue();
+                Ext.getCmp("replyBtn").setDisabled(Ext.isEmpty(Ext.getCmp("bio").getValue()));
+            }
+
+            function insertTable() {
+                formWin.show();
+            }
+            function generateArrays(rows,columns) {
+                let arr = [];
+                let n=1;
+                for(let i = 0;i < rows; i++){
+                    arr[i] = []; //每行有10列
+                    for(let j = 0;j < columns; j++){
+                        arr[i][j] = {row:i,column:j};
+                        n++;
+                    }
+                }
+                return arr;
+            }
+            var tpl = new Ext.XTemplate(
+                '<table class="tablePanel" style="border: 1px solid red" contenteditable="true">',
+                '<tpl for="values"> ',
+                   '<tr>',
+                      '<tpl for="values"> ',
+                       '<td>rows:{row},column:{column}</td>' ,
+                      '</tpl>',
+                   '</tr>',
+                '</tpl>',
+                '</table>'
+            );
+            var resetMenu = new Ext.menu.Menu({
+                items: [
+                    {
+                        text: 'reset',
+                        handler: reset
+                    }
+                ],
+            });
+            var tableMenu = new Ext.menu.Menu({
+                items: [
+                    {
+                        text: 'Table',
+                        handler: insertTable
+                    },
+                ],
+            });
+            var editButton = new Ext.SplitButton({
+                text: 'Edit',
+                width: 50,
+                handler: function () {//handle click
+                    debugger;
+                    if (editButton.menu && !editButton.menu.isVisible()) {
+                        editButton.menu.show(this.el, editButton.menuAlign);
+                    }
+                },
+                menu: resetMenu
+            });
+            var tableButton = new Ext.SplitButton({
+                text: 'Insert',
+                width: 50,
+                handler: function () {//handle click
+                    debugger;
+                    if (tableButton.menu && !tableButton.menu.isVisible()) {
+                        tableButton.menu.show(this.el, tableButton.menuAlign);
+                    }
+                },
+                menu: tableMenu
+            });
+            var tb = new Ext.Toolbar({
+                items: [
+                    editButton,
+                    {xtype: 'tbseparator'},
+                    tableButton
+                ]
+            });
+            tb.doLayout();
+            var topForm = new Ext.FormPanel({
+                id: 'topForm',
+                labelAlign: 'top',
+                tbar: [tb],
+                width: 400,
+                autoHeight:true,
+                frame: true,
+                items: [ {
+                    xtype: 'textarea',
+                    id: 'bio',
+                    fieldLabel: 'Reply',
+                    enableKeyEvents: true,
+                    height: 200,
+                    anchor: '98%',
+                    listeners: {
+                        keyup: function (here, e) {
+                            Ext.getCmp("replyBtn").setDisabled(Ext.isEmpty(Ext.getCmp("bio").getValue()));
+                        }
+                    }
+                }],
+
+                buttons: [{
+                    id: 'replyBtn',
+                    text: 'Reply',
+                    disabled: true,
+                    listeners: {
+                        click: function () {
+                            var msgBox = Ext.MessageBox.show({
+                                title: 'System Alert',
+                                msg: 'In Progress..',
+                                modal: true,
+                                width: 300,
+                                progress: true
+                            });
+                            let count = 0;
+                            let percentage = 0;
+                            let progressText = '';
+                            var task = {
+                                run: function () {
+                                    count++;
+                                    percentage = count / 10;
+                                    progressText = 'Current Finished :' + percentage * 100 + '%';
+                                    msgBox.updateProgress(percentage, progressText, 'Handling');
+                                    if (count > 10) {
+                                        Ext.TaskMgr.stop(task);
+                                        msgBox.hide();	//hide the MessageBox
+                                        Ext.MessageBox.alert("Success", "reply succeed!");
+                                    }
+                                },
+                                interval: 300 	//controller the event interval
+                            };
+
+                            Ext.TaskMgr.start(task);
+                        }
+                    }
+                }]
+            });
+            var contextmenu = new Ext.menu.Menu({
+                items: [{
+                    id: 'resetMenu',
+                    text: 'reset',
+                    menu: resetMenu
+                }, {
+                    id: 'tableMenu',
+                    text: 'Insert',
+                    menu: tableMenu
+                },],
+                listeners: {
+                    itemclick: function (item) {
+                        switch (item.id) {
+                            case 'resetMenu':
+                                reset();
+                                break;
+                            case 'tableMenu':
+                                insertTable();
+                                break;
+                        }
+                    }
+                }
+            });
+            Ext.get(document).on('contextmenu', function (e) {
+                e.preventDefault();
+                contextmenu.showAt(e.getXY());
+            });
+            var tableRowColumnForm = new Ext.FormPanel({
+                labelWidth: 75, // label settings here cascade unless overridden
+                url: 'save-form.php',
+                frame: true,
+                title: 'Simple Form',
+                bodyStyle: 'padding:5px 5px 0',
+                width: 300,
+                id: "tableRowColumnForm",
+                defaults: {width: 200},
+                defaultType: 'textfield',
+                items: [{
+                    id:'rows',
+                    fieldLabel: 'Rows',
+                    name: 'rows',
+                    allowBlank: false
+                }, {
+                    fieldLabel: 'Columns',
+                    id:'columns',
+                    name: 'columns'
+                }],
+                buttons: [{
+                    text: 'Save',
+                    listeners: {
+                        click: function (btn, event) {
+                            debugger;
+                            let rows = Ext.getCmp("rows").getValue();
+                            let columns = Ext.getCmp("columns").getValue();
+                            tableData=generateArrays(rows,columns);
+                            tpl.overwrite(tablePanel.body,tableData);
+                            formWin.hide(this);
+                        }
+                    }
+
+                }, {
+                    text: 'Cancel',
+                    listeners: {
+                        click: function (btn, event) {
+                            formWin.hide(this);
+                        }
+                    }
+                }]
+            });
+            var formWin = new Ext.Window({
+                title: "Table Row & Column",
+                id:'formWin',
+                closeAction:'hide',
+                draggable: false,
+                height: 300,
+                width: 400,
+                layout: "fit",            //窗口布局类型
+                modal: true, //是否模态窗口，默认为false
+                resizable: false,
+                items: [tableRowColumnForm]
+            });
+            var tablePanel = new Ext.Panel({
+                title:'Table',
+                id:'tablePanel',
+                width:800,
+                html:'This table Panel!'
+            });
+            var win = new Ext.Window({
+                title: 'Blog Reply',
+                closable: true,
+                width: 800,
+                height: 600,
+                autoScroll: true,
+                //border:false,
+                plain: true,
+                // layout: 'column',
+                layout: 'fit',
+                items: [topForm,tablePanel]
+            });
+            win.show(this);
+        })
+    </script>
+    <style type="text/css">
+        .tablePanel tr td{
+            border: 1px solid green;
+        }
+    </style>
+</head>
+<body>
+</body>
+</html>
