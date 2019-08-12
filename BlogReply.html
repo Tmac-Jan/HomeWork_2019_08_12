@@ -25,7 +25,7 @@
                 let arr = [];
                 let n=1;
                 for(let i = 0;i < rows; i++){
-                    arr[i] = []; //每行有10列
+                    arr[i] = [];
                     for(let j = 0;j < columns; j++){
                         arr[i][j] = {row:i,column:j};
                         n++;
@@ -223,8 +223,8 @@
                 draggable: false,
                 height: 300,
                 width: 400,
-                layout: "fit",            //窗口布局类型
-                modal: true, //是否模态窗口，默认为false
+                layout: "fit",   //窗口布局类型
+                modal: true,
                 resizable: false,
                 items: [tableRowColumnForm]
             });
